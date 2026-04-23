@@ -16,7 +16,7 @@ app.use(
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT
 connectToDb();
 app.use("/api/v1/products", productRoutes);
 app.use("/api/v1/auth", authRoutes);
