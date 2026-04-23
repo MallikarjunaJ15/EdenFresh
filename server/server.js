@@ -7,14 +7,14 @@ import authRoutes from "./routes/auth.route.js";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 const app = express();
-app.use(
-  cors({
-    origin: "https://eden-fresh.vercel.app",
-    credentials: true,
-  }),
-);
-
-app.options("*", cors());
+const corsOptions = {
+  origin: "https://eden-fresh.vercel.app",
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+};
+app.use(cors(corsOptions));
+app.options("*", cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
