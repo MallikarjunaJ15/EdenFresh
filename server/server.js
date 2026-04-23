@@ -9,14 +9,14 @@ import cookieParser from "cookie-parser";
 const app = express();
 app.use(
   cors({
-    origin: "http://127.0.0.1:5500",
+    origin: "*",
     credentials: true,
   }),
 );
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
-const PORT = process.env.PORT;
+const PORT = process.env.PORT || 5000;
 
 connectToDb();
 app.use("/api/v1/products", productRoutes);
