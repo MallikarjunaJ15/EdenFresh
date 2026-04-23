@@ -8,9 +8,18 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 const app = express();
 const corsOptions = {
-  origin: "https://eden-fresh.vercel.app",
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+
+    if (origin.includes("vercel.app")) {
+      return callback(null, true);
+    }
+    return callback(new Error("Not allowed by CORS"));
+  },
   credentials: true,
 };
+
+app.use(cors(corsOptions));
 app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
