@@ -9,7 +9,7 @@ import cookieParser from "cookie-parser";
 const app = express();
 app.use(
   cors({
-    origin: true,
+    origin: "https://eden-fresh.vercel.app",
     credentials: true,
   }),
 );
