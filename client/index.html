@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>EdenFresh</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f0fdf4;
+        }
+
+        nav {
+            display: flex;
+            justify-content: space-between;
+            padding: 15px 40px;
+            background: #065f46;
+            color: white;
+        }
+
+        nav button {
+            margin-left: 10px;
+            padding: 8px 12px;
+            border: none;
+            background: #10b981;
+            color: white;
+            cursor: pointer;
+        }
+
+        .hero {
+            text-align: center;
+            padding: 80px 20px;
+            background: linear-gradient(#10b981, #065f46);
+            color: white;
+        }
+
+        .container {
+            padding: 20px;
+        }
+
+        .card {
+            background: white;
+            padding: 15px;
+            margin: 10px;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn {
+            padding: 6px 10px;
+            background: #10b981;
+            color: white;
+            border: none;
+            cursor: pointer;
+            margin: 5px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            width: 300px;
+        }
+
+        input {
+            padding: 8px;
+            margin: 5px 0;
+            width: 100%;
+        }
+    </style>
+</head>
+
+<body>
+
+    <nav>
+        <h2>EdenFresh 🌿</h2>
+        <div id="navActions">
+            <button onclick="goLogin()">Login</button>
+            <button onclick="goSignup()">Signup</button>
+        </div>
+    </nav>
+
+    <div class="hero" id="hero">
+        <h1>Fresh Products. Better Living.</h1>
+    </div>
+
+    <div class="container" id="dashboard" style="display:none;">
+        <h2>Products</h2>
+
+        <button class="btn" onclick="openModal()">Add Product</button>
+        <button class="btn" onclick="fetchProducts()">All</button>
+        <button class="btn" onclick="getFeatured()">Featured</button>
+
+        <br><br>
+
+        <input id="priceFilter" placeholder="Max Price">
+        <button class="btn" onclick="filterByPrice()">Filter Price</button>
+
+        <input id="ratingFilter" placeholder="Min Rating">
+        <button class="btn" onclick="filterByRating()">Filter Rating</button>
+
+        <div id="productList"></div>
+    </div>
+
+    <!-- MODAL -->
+    <div class="modal" id="modal">
+        <div class="modal-content">
+            <h3 id="modalTitle">Add Product</h3>
+
+            <input id="productId" placeholder="Product ID">
+            <input id="name" placeholder="Name">
+            <input id="price" placeholder="Price">
+            <input id="company" placeholder="Company">
+            <input id="rating" placeholder="Rating">
+
+            <label>
+                Featured <input type="checkbox" id="featured">
+            </label>
+
+            <button class="btn" onclick="submitProduct()">Submit</button>
+            <button class="btn" onclick="closeModal()">Close</button>
+        </div>
+    </div>
+
+    <script>
+        const API = "http://127.0.0.1:3000/api/v1";
+
+        let isEdit = false;
+        let editId = null;
+
+        /* NAV */
+        function goLogin() { window.location.href = "login.html"; }
+        function goSignup() { window.location.href = "signup.html"; }
+
+        /* AUTH CHECK */
+        async function checkAuth() {
+            const res = await fetch(`${API}/products`, { credentials: "include" });
+
+            if (res.status === 401) {
+                hero.style.display = "block";
+                dashboard.style.display = "none";
+            } else {
+                hero.style.display = "none";
+                dashboard.style.display = "block";
+                navActions.innerHTML = `<button onclick="logout()">Logout</button>`;
+                fetchProducts();
+            }
+        }
+
+        /* FETCH */
+        async function fetchProducts(url = `${API}/products`) {
+            const res = await fetch(url, { credentials: "include" });
+            const data = await res.json();
+
+            productList.innerHTML = "";
+
+            data.data.forEach(p => {
+                const div = document.createElement("div");
+                div.className = "card";
+
+                div.innerHTML = `
+      <h3>${p.name}</h3>
+      <p>₹${p.price} | ${p.company}</p>
+      <p>⭐ ${p.rating || 0} ${p.featured ? "Featured" : ""}</p>
+      <button class="btn" onclick="deleteProduct('${p._id}')">Delete</button>
+      <button class="btn" onclick='openModal(true, ${JSON.stringify(p)})'>Update</button>
+    `;
+
+                productList.appendChild(div);
+            });
+        }
+
+        /* MODAL */
+        function openModal(edit = false, product = null) {
+            modal.style.display = "flex";
+            isEdit = edit;
+
+            if (edit) {
+                editId = product._id;
+
+                document.getElementById("productId").value = product.productId;
+                document.getElementById("name").value = product.name;
+                document.getElementById("price").value = product.price;
+                document.getElementById("company").value = product.company;
+                document.getElementById("rating").value = product.rating || "";
+                document.getElementById("featured").checked = product.featured;
+
+                modalTitle.innerText = "Update Product";
+            } else {
+                document.getElementById("productId").value = "";
+                document.getElementById("name").value = "";
+                document.getElementById("price").value = "";
+                document.getElementById("company").value = "";
+                document.getElementById("rating").value = "";
+                document.getElementById("featured").checked = false;
+
+                modalTitle.innerText = "Add Product";
+            }
+        }
+
+        function closeModal() {
+            modal.style.display = "none";
+        }
+
+        async function submitProduct() {
+            const productIdEl = document.getElementById("productId");
+            const nameEl = document.getElementById("name");
+            const priceEl = document.getElementById("price");
+            const companyEl = document.getElementById("company");
+            const ratingEl = document.getElementById("rating");
+            const featuredEl = document.getElementById("featured");
+
+            if (!productIdEl || !nameEl || !priceEl || !companyEl) {
+                alert("Form elements not found");
+                return;
+            }
+
+            const product = {
+                productId: productIdEl.value.trim(),
+                name: nameEl.value.trim(),
+                price: Number(priceEl.value),
+                company: companyEl.value.trim(),
+                rating: ratingEl.value ? Number(ratingEl.value) : undefined,
+                featured: featuredEl.checked
+            };
+
+            if (!product.productId || !product.name || !product.price || !product.company) {
+                alert("Fill required fields");
+                return;
+            }
+
+            let res;
+
+            if (isEdit) {
+                res = await fetch(`${API}/products/${editId}`, {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    credentials: "include",
+                    body: JSON.stringify(product)
+                });
+            } else {
+                res = await fetch(`${API}/products`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    credentials: "include",
+                    body: JSON.stringify(product)
+                });
+            }
+
+            if (!res.ok) {
+                const data = await res.json();
+                alert(data.message);
+                return;
+            }
+
+            closeModal();
+            fetchProducts();
+        }
+
+        /* DELETE */
+        async function deleteProduct(id) {
+            await fetch(`${API}/products/${id}`, {
+                method: "DELETE",
+                credentials: "include"
+            });
+            fetchProducts();
+        }
+
+        /* FILTERS */
+        function getFeatured() {
+            fetchProducts(`${API}/products/featured`);
+        }
+
+        function filterByPrice() {
+            const val = priceFilter.value;
+            fetchProducts(`${API}/products/price?price=${val}`);
+        }
+
+        function filterByRating() {
+            const val = ratingFilter.value;
+            fetchProducts(`${API}/products/rating?rating=${val}`);
+        }
+
+        /* LOGOUT */
+        async function logout() {
+            await fetch(`${API}/auth/logout`, {
+                method: "POST",
+                credentials: "include"
+            });
+            window.location.href = "login.html";
+        }
+
+        /* INIT */
+        checkAuth();
+    </script>
+
+</body>
+
+</html>
